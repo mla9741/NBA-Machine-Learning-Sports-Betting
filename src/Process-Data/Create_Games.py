@@ -7,6 +7,7 @@ import pandas as pd
 import toml
 
 sys.path.insert(1, os.path.join(sys.path[0], '../..'))
+from FeatureEngineering import FeatureEngineer
 from src.Utils.Dictionaries import team_index_07, team_index_08, team_index_12, team_index_13, team_index_14, \
     team_index_current
 
@@ -96,6 +97,9 @@ for field in frame.columns.values:
     if 'TEAM_' in field or 'Date' in field or field not in frame:
         continue
     frame[field] = frame[field].astype(float)
+
+feature_engineer = FeatureEngineer()
+frame = feature_engineer.enhance(frame)
 con = sqlite3.connect("../../Data/dataset.sqlite")
 frame.to_sql("dataset_2012-24_new", con, if_exists="replace")
 con.close()
