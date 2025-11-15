@@ -37,6 +37,11 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
         description="Run the data refresh, training, and prediction steps with one command.",
     )
     parser.add_argument(
+        "--skip-bdl-games",
+        action="store_true",
+        help="Skip importing Ball Don't Lie game data.",
+    )
+    parser.add_argument(
         "--skip-team-data",
         action="store_true",
         help="Skip refreshing team box score data (Get_Data).",
@@ -89,6 +94,14 @@ def main(argv: Iterable[str] | None = None) -> None:
     args = parse_args(argv)
 
     python_exe = sys.executable
+
+    if not args.skip_bdl_games:
+        run_step(
+            "Import Ball Don't Lie games",
+            [python_exe, "-m", "Import_BallDontLie_Games"],
+            cwd=PROCESS_DATA_DIR,
+            dry_run=args.dry_run,
+        )
 
     if not args.skip_team_data:
         run_step(

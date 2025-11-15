@@ -44,6 +44,7 @@ python pipeline.py --odds fanduel --models xgb --kelly
 
 The script mirrors the manual steps documented below and accepts a few useful flags:
 
+* `--skip-bdl-games` – skip the Ball Don't Lie import if you already have up-to-date raw games in `Data/BallDontLieGames.sqlite`.
 * `--skip-team-data` / `--skip-odds-data` / `--skip-dataset` / `--skip-training` / `--skip-predictions` – skip individual phases when you already have the latest outputs.
 * `--models xgb nn` – run both the XGBoost and neural network predictors (omit `nn` to run just XGBoost).
 * `--odds <sportsbook>` – forward the sportsbook to `main.py` so odds are scraped automatically.
@@ -51,6 +52,12 @@ The script mirrors the manual steps documented below and accepts a few useful fl
 * `--dry-run` – print the commands without executing them; helpful for verifying the workflow.
 
 Make sure the required API keys (e.g., `BALLDONTLIE_API_KEY`) are exported in your environment before launching the pipeline so the feature engineering step can call external services.
+
+```bash
+export BALLDONTLIE_API_KEY=54de9dfa-0884-4402-8fa1-5f812fb99bfb
+```
+
+With the key exported, both the injury-aware feature engineering step and the Ball Don't Lie game importer will authenticate automatically.
 
 ## Flask Web App
 <img src="https://github.com/kyleskom/NBA-Machine-Learning-Sports-Betting/blob/master/Screenshots/Flask-App.png" width="922" height="580" />
@@ -65,6 +72,7 @@ flask --debug run
 ```
 # Create dataset with the latest data for 2023-24 season
 cd src/Process-Data
+python -m Import_BallDontLie_Games
 python -m Get_Data
 python -m Get_Odds_Data
 python -m Create_Games

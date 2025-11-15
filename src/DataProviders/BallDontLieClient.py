@@ -119,6 +119,32 @@ class BallDontLieClient:
         self._cache[cache_key] = results
         return results
 
+    def iter_games(
+        self,
+        start_date: dt.date,
+        end_date: dt.date,
+        *,
+        seasons: Optional[List[int]] = None,
+    ) -> Iterable[Dict]:
+        """Yield games between ``start_date`` and ``end_date`` (inclusive)."""
+
+        params: Dict = {
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+        }
+        if seasons:
+            params["seasons[]"] = seasons
+        yield from self._iter_pages("games", params=params)
+
+    def get_games(
+        self,
+        start_date: dt.date,
+        end_date: dt.date,
+        *,
+        seasons: Optional[List[int]] = None,
+    ) -> List[Dict]:
+        return list(self.iter_games(start_date, end_date, seasons=seasons))
+
     def _normalise_team_name(self, payload: Dict) -> str:
         team = payload.get("team", {})
         return team.get("full_name") or team.get("name") or ""
