@@ -34,6 +34,24 @@ If `-odds` is not given, enter the under/over and odds for today's games manuall
 
 Optionally, you can add '-kc' as a command line argument to see the recommended fraction of your bankroll to wager based on the model's edge
 
+## One-command pipeline runner
+
+To refresh the raw data, rebuild the enriched dataset, retrain the models, and produce today's predictions in one go, use the `pipeline.py` helper:
+
+```bash
+python pipeline.py --odds fanduel --models xgb --kelly
+```
+
+The script mirrors the manual steps documented below and accepts a few useful flags:
+
+* `--skip-team-data` / `--skip-odds-data` / `--skip-dataset` / `--skip-training` / `--skip-predictions` – skip individual phases when you already have the latest outputs.
+* `--models xgb nn` – run both the XGBoost and neural network predictors (omit `nn` to run just XGBoost).
+* `--odds <sportsbook>` – forward the sportsbook to `main.py` so odds are scraped automatically.
+* `--kelly` – enable Kelly Criterion staking recommendations during the prediction step.
+* `--dry-run` – print the commands without executing them; helpful for verifying the workflow.
+
+Make sure the required API keys (e.g., `BALLDONTLIE_API_KEY`) are exported in your environment before launching the pipeline so the feature engineering step can call external services.
+
 ## Flask Web App
 <img src="https://github.com/kyleskom/NBA-Machine-Learning-Sports-Betting/blob/master/Screenshots/Flask-App.png" width="922" height="580" />
 
