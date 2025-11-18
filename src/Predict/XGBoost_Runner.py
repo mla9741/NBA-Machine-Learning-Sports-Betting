@@ -1,4 +1,5 @@
 import copy
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -8,20 +9,52 @@ from src.Utils import Expected_Value
 from src.Utils import Kelly_Criterion as kc
 
 
-# from src.Utils.Dictionaries import team_index_current
-# from src.Utils.tools import get_json_data, to_data_frame, get_todays_games_json, create_todays_games
 init()
-xgb_ml = xgb.Booster()
-xgb_ml.load_model('Models/XGBoost_Models/XGBoost_68.7%_ML-4.json')
-xgb_uo = xgb.Booster()
-xgb_uo.load_model('Models/XGBoost_Models/XGBoost_53.7%_UO-9.json')
+
+_DEFAULT_XGB_DIR = Path('Models') / 'XGBoost_Models'
+_FALLBACK_ML = _DEFAULT_XGB_DIR / 'XGBoost_68.7%_ML-4.json'
+_FALLBACK_OU = _DEFAULT_XGB_DIR / 'XGBoost_53.7%_UO-9.json'
+
+_xgb_ml: xgb.Booster | None = None
+_xgb_ou: xgb.Booster | None = None
+
+
+def _resolve_model_path(preferred: Path, fallback: Path) -> Path:
+    if preferred.exists():
+        return preferred
+    latest = _DEFAULT_XGB_DIR / preferred.name
+    if latest.exists():
+        return latest
+    if (_DEFAULT_XGB_DIR / 'latest_moneyline.json').exists():
+        if 'moneyline' in preferred.name:
+            return _DEFAULT_XGB_DIR / 'latest_moneyline.json'
+    if (_DEFAULT_XGB_DIR / 'latest_total.json').exists():
+        if 'total' in preferred.name:
+            return _DEFAULT_XGB_DIR / 'latest_total.json'
+    return fallback
+
+
+def refresh_models(ml_path: Path | None = None, ou_path: Path | None = None) -> None:
+    global _xgb_ml, _xgb_ou
+    ml_target = _resolve_model_path(ml_path or (_DEFAULT_XGB_DIR / 'latest_moneyline.json'), _FALLBACK_ML)
+    ou_target = _resolve_model_path(ou_path or (_DEFAULT_XGB_DIR / 'latest_total.json'), _FALLBACK_OU)
+    _xgb_ml = xgb.Booster()
+    _xgb_ml.load_model(str(ml_target))
+    _xgb_ou = xgb.Booster()
+    _xgb_ou.load_model(str(ou_target))
+
+
+def _ensure_models_loaded() -> None:
+    if _xgb_ml is None or _xgb_ou is None:
+        refresh_models()
 
 
 def xgb_runner(data, todays_games_uo, frame_ml, games, home_team_odds, away_team_odds, kelly_criterion):
+    _ensure_models_loaded()
     ml_predictions_array = []
 
     for row in data:
-        ml_predictions_array.append(xgb_ml.predict(xgb.DMatrix(np.array([row]))))
+        ml_predictions_array.append(_xgb_ml.predict(xgb.DMatrix(np.array([row]))))
 
     frame_uo = copy.deepcopy(frame_ml)
     frame_uo['OU'] = np.asarray(todays_games_uo)
@@ -31,7 +64,7 @@ def xgb_runner(data, todays_games_uo, frame_ml, games, home_team_odds, away_team
     ou_predictions_array = []
 
     for row in data:
-        ou_predictions_array.append(xgb_uo.predict(xgb.DMatrix(np.array([row]))))
+        ou_predictions_array.append(_xgb_ou.predict(xgb.DMatrix(np.array([row]))))
 
     count = 0
     for game in games:
