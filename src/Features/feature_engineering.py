@@ -30,6 +30,19 @@ def _ensure_columns(frame: pd.DataFrame, required: Iterable[str]) -> bool:
     return all(col in frame.columns for col in required)
 
 
+def _resolve_column(frame: pd.DataFrame, column_name: str) -> pd.Series:
+    """Return a single Series even when duplicate column names exist."""
+
+    series_or_frame = frame.loc[:, column_name]
+    if isinstance(series_or_frame, pd.DataFrame):
+        # Pandas returns a DataFrame when the column label is duplicated.  We
+        # just take the first occurrence so downstream code that expects a
+        # Series keeps working the same way it did before augment_features
+        # added derived columns.
+        return series_or_frame.iloc[:, 0]
+    return series_or_frame
+
+
 def augment_features(frame: pd.DataFrame) -> pd.DataFrame:
     """Add derived performance indicators that models can train on.
 
@@ -43,7 +56,9 @@ def augment_features(frame: pd.DataFrame) -> pd.DataFrame:
 
     for derived_name, (numerator, denominator) in DERIVED_COLUMNS.items():
         if _ensure_columns(frame, (numerator, denominator)):
-            frame[derived_name] = _safe_ratio(frame[numerator], frame[denominator])
+            numerator_series = _resolve_column(frame, numerator)
+            denominator_series = _resolve_column(frame, denominator)
+            frame[derived_name] = _safe_ratio(numerator_series, denominator_series)
 
     if _ensure_columns(frame, ("REB", "REB.1")):
         frame["Rebound_Differential"] = frame["REB"] - frame["REB.1"]
