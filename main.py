@@ -103,7 +103,9 @@ def createTodaysGames(games, df, odds, schedule_df):
         home_team_days_rest.append(home_days_off)
         away_team_days_rest.append(away_days_off)
         home_team_series = df.iloc[team_index_current.get(home_team)]
-        away_team_series = df.iloc[team_index_current.get(away_team)]
+        away_team_series = df.iloc[team_index_current.get(away_team)].rename(
+            lambda col: f"{col}.1" if not str(col).endswith('.1') else str(col)
+        )
         stats = pd.concat([home_team_series, away_team_series])
         stats['Days-Rest-Home'] = home_days_off
         stats['Days-Rest-Away'] = away_days_off
