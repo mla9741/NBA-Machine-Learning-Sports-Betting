@@ -1,4 +1,6 @@
 import copy
+from pathlib import Path
+
 import numpy as np
 import tensorflow as tf
 from colorama import Fore, Style, init, deinit
@@ -8,15 +10,41 @@ from src.Utils import Kelly_Criterion as kc
 
 init()
 
+_DEFAULT_NN_DIR = Path('Models') / 'NN_Models'
+_FALLBACK_ML = _DEFAULT_NN_DIR / 'Trained-Model-ML-1699315388.285516'
+_FALLBACK_OU = _DEFAULT_NN_DIR / 'Trained-Model-OU-1699315414.2268295'
+
 _model = None
 _ou_model = None
 
-def _load_models():
+
+def refresh_models(ml_path: Path | None = None, ou_path: Path | None = None) -> None:
     global _model, _ou_model
-    if _model is None:
-        _model = load_model('Models/NN_Models/Trained-Model-ML-1699315388.285516')
-    if _ou_model is None:
-        _ou_model = load_model("Models/NN_Models/Trained-Model-OU-1699315414.2268295")
+    ml_candidates = [
+        ml_path,
+        _DEFAULT_NN_DIR / 'latest_moneyline.keras',
+        _FALLBACK_ML,
+    ]
+    ou_candidates = [
+        ou_path,
+        _DEFAULT_NN_DIR / 'latest_total.keras',
+        _FALLBACK_OU,
+    ]
+    for candidate in ml_candidates:
+        if candidate and Path(candidate).exists():
+            _model = load_model(candidate)
+            break
+    for candidate in ou_candidates:
+        if candidate and Path(candidate).exists():
+            _ou_model = load_model(candidate)
+            break
+    if _model is None or _ou_model is None:
+        raise FileNotFoundError('Unable to locate neural network model files.')
+
+
+def _load_models():
+    if _model is None or _ou_model is None:
+        refresh_models()
 
 def nn_runner(data, todays_games_uo, frame_ml, games, home_team_odds, away_team_odds, kelly_criterion):
     _load_models()
